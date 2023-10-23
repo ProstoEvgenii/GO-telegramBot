@@ -1,0 +1,18 @@
+{
+	"Consolelog": {
+		"scope": "go",
+		"prefix": "_log",
+		"body": [
+			"log.Println(\"=$RANDOM_HEX=\",${1})"
+		],
+		"description": "Лог с рандомным указателем"
+	},
+	"Consolefmt": {
+		"scope": "go",
+		"prefix": "_fmt",
+		"body": [
+			"fmt.Println(\"=$RANDOM_HEX=\",${1})"
+		],
+		"description": "Лог с рандомным указателем"
+	}
+}
