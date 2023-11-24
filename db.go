@@ -14,6 +14,7 @@ var dataBase *mongo.Database
 
 func Connect() {
 	uri := "mongodb://" + os.Getenv("LOGIN") + ":" + os.Getenv("PASS") + "@" + os.Getenv("SERVER")
+	log.Println("=f89d86=", uri)
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
 
 	if err != nil {
