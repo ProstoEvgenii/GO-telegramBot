@@ -20,7 +20,10 @@ func main() {
 		log.Println("Файл .env не найден")
 		// host = ":80"
 	}
+	Connect()
 
+	words := readForbiddenWords("new.txt")
+	log.Println("=c52ee9=", words[0])
 	interval := 3
 
 	ticker := time.NewTicker(time.Duration(interval) * time.Second)
@@ -54,7 +57,7 @@ func main() {
 // u.Timeout = 60
 
 // updates := bot.GetUpdatesChan(u)
-// obsceneWords := readForbiddenWords("new.txt")
+
 // log.Println("=2763d5=", obsceneWords)
 // for update := range updates {
 // if update.Message != nil { // If we got a message_
@@ -112,13 +115,6 @@ func GetToApi(route string) (io.ReadCloser, error) {
 	return res.Body, nil
 }
 
-//	func deleteMessage(bot *tgbotapi.BotAPI, chatID int64, messageID int) {
-//		msg := tgbotapi.NewDeleteMessage(chatID, messageID)
-//		_, err := bot.Send(msg)
-//		if err != nil {
-//			log.Printf("Error deleting message: %v", err)
-//		}
-//	}
 func deleteMessage(chatID, messageID int) (Delete, error) {
 	route := fmt.Sprintf("deleteMessage?chat_id=%d&message_id=%d", chatID, messageID)
 
