@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 
@@ -20,10 +21,9 @@ func main() {
 		log.Println("Файл .env не найден")
 		// host = ":80"
 	}
-	Connect()
-
+	// Connect()
 	words := readForbiddenWords("new.txt")
-	log.Println("=c52ee9=", words[0])
+
 	interval := 3
 
 	ticker := time.NewTicker(time.Duration(interval) * time.Second)
@@ -38,14 +38,86 @@ func main() {
 				log.Println("=038abf=", err)
 			}
 			for _, message := range response.Result {
-				log.Printf("=От=%s= %s", message.Message.From.Username, message.Message.Text)
-				if message.Message.Text == "11" {
+				if containsForbiddenWord(message.Message.Text, words) {
+					deleteMessage(message.Message.Chat.ID, message.Message.MessageID)
+				}
+				if message.Message.Text == "word" {
+					log.Printf("=От=%s= %s", message.Message.From.Username, message.Message.Text)
+					fmt.Println("=65eca7=", reflect.TypeOf(message.Message.Text))
+					// log.Println("=Удалено так как в тексте содержится слово=", word)
 					deleteMessage(message.Message.Chat.ID, message.Message.MessageID)
 				}
 			}
 		}
 	}
 }
+
+func readForbiddenWords(filename string) []string {
+	file, err := os.Open(filename)
+	if err != nil {
+		log.Fatalf("Error opening file: %v", err)
+	}
+	defer file.Close()
+
+	var words []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		words = append(words, scanner.Text())
+	}
+	if err := scanner.Err(); err != nil {
+		log.Fatalf("Error reading file: %v", err)
+	}
+
+	return words
+}
+
+func GetToApi(route string) (io.ReadCloser, error) {
+	base := "https://api.telegram.org/bot" + os.Getenv("token") + "/" + route
+	res, err := http.Get(base)
+	if err != nil {
+		fmt.Printf("error making http request: %s\n", err)
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+func containsForbiddenWord(text string, forbiddenWords []string) bool {
+	loweredText := strings.Fields(strings.ToLower(text))
+	for _, word := range loweredText {
+		for _, forbiddenWord := range forbiddenWords {
+			if word == forbiddenWord {
+				log.Printf("=Сообщение %s будет удалео из-за слова %s", text, forbiddenWord)
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func getUpdate() (GetUpdates, error) {
+	resBody, err := GetToApi("getUpdates")
+	if err != nil {
+		return GetUpdates{}, fmt.Errorf("error fetching data: %s", err)
+	}
+	defer resBody.Close()
+
+	var response GetUpdates
+	if err := json.NewDecoder(resBody).Decode(&response); err != nil {
+		return GetUpdates{}, fmt.Errorf("error decoding JSON: %s", err)
+	}
+
+	return response, nil
+}
+
+// func containsObscene(text string, obsceneWords []string) bool {
+// 	for _, word := range obsceneWords {
+// 		// log.Println("=33709f=",word)
+// 		if strings.Contains(text, word) {
+// 			return true
+// 		}
+// 	}
+// 	return false
+// }
 
 // Start(host)
 // var chatID int64 = -1002053372425
@@ -83,82 +155,9 @@ func main() {
 // 	deleteMessage(bot, chatID, update.Message.MessageID)
 
 // }
-// 		}
-// 	}
-
+//
+//		}
+//	}
 func Start(host string) {
 	http.ListenAndServe(host, nil)
-}
-
-func getUpdate() (GetUpdates, error) {
-	resBody, err := GetToApi("getUpdates")
-	if err != nil {
-		return GetUpdates{}, fmt.Errorf("error fetching data: %s", err)
-	}
-	defer resBody.Close()
-
-	var response GetUpdates
-	if err := json.NewDecoder(resBody).Decode(&response); err != nil {
-		return GetUpdates{}, fmt.Errorf("error decoding JSON: %s", err)
-	}
-
-	return response, nil
-}
-
-func GetToApi(route string) (io.ReadCloser, error) {
-	base := "https://api.telegram.org/bot" + os.Getenv("token") + "/" + route
-	res, err := http.Get(base)
-	if err != nil {
-		fmt.Printf("error making http request: %s\n", err)
-		return nil, err
-	}
-	return res.Body, nil
-}
-
-func deleteMessage(chatID, messageID int) (Delete, error) {
-	route := fmt.Sprintf("deleteMessage?chat_id=%d&message_id=%d", chatID, messageID)
-
-	resp, err := GetToApi(route)
-	if err != nil {
-		return Delete{}, fmt.Errorf("error sending request: %s", err)
-	}
-	var response Delete
-
-	if err := json.NewDecoder(resp).Decode(&response); err != nil {
-		return Delete{}, fmt.Errorf("error decoding JSON: %s", err)
-	}
-	if !response.Result {
-		return Delete{}, fmt.Errorf("error deleting message: %t", response.Result)
-	}
-	log.Println("=b414b5=", response)
-	return response, nil
-}
-
-func readForbiddenWords(filename string) []string {
-	file, err := os.Open(filename)
-	if err != nil {
-		log.Fatalf("Error opening file: %v", err)
-	}
-	defer file.Close()
-
-	var words []string
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		words = append(words, scanner.Text())
-	}
-	if err := scanner.Err(); err != nil {
-		log.Fatalf("Error reading file: %v", err)
-	}
-
-	return words
-}
-
-func containsObscene(text string, obsceneWords []string) bool {
-	for _, word := range obsceneWords {
-		// log.Println("=33709f=",word)
-		if strings.Contains(text, word) {
-			return true
-		}
-	}
-	return false
 }
