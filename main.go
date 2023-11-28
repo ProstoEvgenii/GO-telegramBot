@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
 
@@ -38,7 +39,7 @@ func main() {
 				log.Println("=038abf=", err)
 			}
 			for _, message := range response.Result {
-				if containsForbiddenWord(message.Message.Text, words) {
+				if message.Message.From.Username != "dmitriibelov" && containsForbiddenWord(message.Message.Text, words) {
 					deleteMessage(message.Message.Chat.ID, message.Message.MessageID)
 				}
 				if message.Message.Text == "word" {
@@ -83,10 +84,12 @@ func GetToApi(route string) (io.ReadCloser, error) {
 
 func containsForbiddenWord(text string, forbiddenWords []string) bool {
 	loweredText := strings.Fields(strings.ToLower(text))
-	for _, word := range loweredText {
+	re := regexp.MustCompile(`@([a-zA-Z0-9]+)`)
+	for _, messageWord := range loweredText {
+		// log.Println("=784269=", messageWord)
 		for _, forbiddenWord := range forbiddenWords {
-			if word == forbiddenWord {
-				log.Printf("=Сообщение %s будет удалео из-за слова %s", text, forbiddenWord)
+			if messageWord == strings.ToLower(forbiddenWord) || re.MatchString(messageWord) {
+				log.Printf("=Сообщение будет удалено из-за слова %s", forbiddenWord)
 				return true
 			}
 		}
