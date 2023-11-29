@@ -38,15 +38,18 @@ func main() {
 			if err != nil {
 				log.Println("=038abf=", err)
 			}
-			for _, message := range response.Result {
-				if message.Message.From.Username != "dmitriibelov" && containsForbiddenWord(message.Message.Text, words) {
-					deleteMessage(message.Message.Chat.ID, message.Message.MessageID)
+			for _, item := range response.Result {
+				if containsForbiddenWord(item.Message, words) {
+					if item.Message.From.Username != "dmitriibelov" {
+						deleteMessage(item.Message.Chat.ID, item.Message.MessageID)
+					}
+
 				}
-				if message.Message.Text == "word" {
-					log.Printf("=От=%s= %s", message.Message.From.Username, message.Message.Text)
-					fmt.Println("=65eca7=", reflect.TypeOf(message.Message.Text))
+				if item.Message.Text == "word" {
+					log.Printf("=От=%s= %s", item.Message.From.Username, item.Message.Text)
+					fmt.Println("=65eca7=", reflect.TypeOf(item.Message.Text))
 					// log.Println("=Удалено так как в тексте содержится слово=", word)
-					deleteMessage(message.Message.Chat.ID, message.Message.MessageID)
+					deleteMessage(item.Message.Chat.ID, item.Message.MessageID)
 				}
 			}
 		}
@@ -82,15 +85,23 @@ func GetToApi(route string) (io.ReadCloser, error) {
 	return res.Body, nil
 }
 
-func containsForbiddenWord(text string, forbiddenWords []string) bool {
-	loweredText := strings.Fields(strings.ToLower(text))
+func containsForbiddenWord(message Message, forbiddenWords []string) bool {
+	loweredText := strings.Fields(strings.ToLower(message.Text))
+	// log.Println("=35861d=", message.Text)
 	re := regexp.MustCompile(`@([a-zA-Z0-9]+)`)
 	for _, messageWord := range loweredText {
-		// log.Println("=784269=", messageWord)
 		for _, forbiddenWord := range forbiddenWords {
-			if messageWord == strings.ToLower(forbiddenWord) || re.MatchString(messageWord) {
+			if messageWord == strings.ToLower(forbiddenWord) {
 				log.Printf("=Сообщение будет удалено из-за слова %s", forbiddenWord)
 				return true
+			} else if re.MatchString(messageWord) {
+				resp, err := getChatMember(message.Chat.ID, message.From.ID)
+				if err != nil {
+					log.Println("=ff79e2=", err)
+				}
+				if !resp.Ok {
+					return true
+				}
 			}
 		}
 	}
