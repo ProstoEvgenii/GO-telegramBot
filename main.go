@@ -11,6 +11,9 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func main() {
