@@ -11,8 +11,6 @@ import (
 	"regexp"
 	"strings"
 	"time"
-
-	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -21,18 +19,18 @@ func main() {
 		log.Println("Файл .env не найден")
 		// host = ":80"
 	}
-	// Connect()
+	Connect()
 	words := readForbiddenWords("new.txt")
+	writeWords(words)
+	intervalGetUpdate := 3
 
-	interval := 3
-
-	ticker := time.NewTicker(time.Duration(interval) * time.Second)
+	ticker := time.NewTicker(time.Duration(intervalGetUpdate) * time.Second)
 	defer ticker.Stop()
 	offset := 668578288
 	for {
 		select {
 		case <-ticker.C:
-			log.Println("=Выполняюсь каждые=", interval, "Секунды")
+			log.Println("=Выполняюсь каждые=", intervalGetUpdate, "Секунды")
 
 			response, err := getUpdate(offset)
 			if err != nil {
@@ -41,10 +39,13 @@ func main() {
 
 			for _, item := range response.Result {
 				offset = item.UpdateID + 1
-				log.Println("=d25e31=", item.Message)
-				if containsForbiddenWord(item.Message, words) {
-					if item.Message.From.Username != "dmitriibelov" {
+
+				if item.Message.From.Username != "dmitriibelov" {
+					if containsForbiddenWord(item.Message, words) {
 						deleteMessage(item.Message.Chat.ID, item.Message.MessageID)
+					}
+					if len(item.Message.Entities) != 0 {
+						handleEntities(item.Message.Entities, item.Message.Text)
 					}
 				}
 			}
@@ -71,6 +72,21 @@ func readForbiddenWords(filename string) []string {
 	return words
 }
 
+func writeWords(words []string) {
+	for _, forbiddenWord := range words {
+		loweredForbiddenWord := strings.ToLower(forbiddenWord)
+		filter := bson.M{
+			"word": loweredForbiddenWord,
+		}
+		update := bson.M{
+			"word": loweredForbiddenWord,
+		}
+		result := InsertIfNotExists(filter, update, "forbiddenWords")
+		log.Println("=bcc2f5=", result)
+	}
+
+}
+
 func GetToApi(route string) (io.ReadCloser, error) {
 	base := "https://api.telegram.org/bot" + os.Getenv("token") + "/" + route
 	res, err := http.Get(base)
@@ -81,10 +97,37 @@ func GetToApi(route string) (io.ReadCloser, error) {
 	return res.Body, nil
 }
 
+func handleEntities(entities []Entities, messageText string) {
+	for _, entity := range entities {
+		if entity.Type == "mention" {
+			start := entity.Offset
+			stop := start + entity.Length
+			url := messageText[start:stop]
+			//Обрабатывать разрешенные упоминания
+			log.Println("=adc6e2=", url)
+			return
+		}
+		if entity.Type == "url" {
+			start := entity.Offset
+			stop := start + entity.Length
+			url := messageText[start:stop]
+			//Обрабатывать разрешенные ссылки
+			log.Println("=adc6e2=", url)
+			return
+		}
+		if entity.Type == "text_link" {
+			//Обрабатывать разрешенные ссылки
+			log.Println("=902e68=", entity.URL)
+			return
+		}
+
+	}
+
+}
 func containsForbiddenWord(message Message, forbiddenWords []string) bool {
 	loweredText := strings.Fields(strings.ToLower(message.Text))
 	regClean := regexp.MustCompile("[^a-zA-Zа-яА-Я0-9]+")
-	regUsername := regexp.MustCompile(`@([a-zA-Z0-9]+)`)
+	// regUsername := regexp.MustCompile(`@([a-zA-Z0-9]+)`)
 	for _, messageWord := range loweredText {
 		for _, forbiddenWord := range forbiddenWords {
 			loweredForbiddenWord := strings.ToLower(forbiddenWord)
@@ -93,10 +136,11 @@ func containsForbiddenWord(message Message, forbiddenWords []string) bool {
 				// log.Println("=7c7444=", cleanedMessageWord)
 				log.Printf("=Сообщение будет удалено из-за слова %s", forbiddenWord)
 				return true
-			} else if regUsername.MatchString(messageWord) {
-				log.Printf("=Сообщение  %s удалено. \nИспользование логина", messageWord)
-				return true
 			}
+			// else if regUsername.MatchString(messageWord) {
+			// 	log.Printf("=Сообщение  %s удалено. \nИспользование логина", messageWord)
+			// 	return true
+			// }
 		}
 	}
 	return false

@@ -4,17 +4,13 @@ import (
 	"context"
 	"log"
 	"os"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var dataBase *mongo.Database
 
 func Connect() {
 	uri := "mongodb://" + os.Getenv("LOGIN") + ":" + os.Getenv("PASS") + "@" + os.Getenv("SERVER")
-	log.Println("=f89d86=", uri)
+	log.Println("=9791db=", uri)
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
 
 	if err != nil {
@@ -39,6 +35,7 @@ func InsertIfNotExists(filter, update primitive.M, collName string) *mongo.Updat
 	if err != nil {
 		log.Println("=InsertIfNotExists=", err)
 	}
+
 	return result
 	// if result.MatchedCount != 0 {
 	// 	fmt.Println("matched and replaced an existing document")
@@ -67,7 +64,7 @@ func CountDocuments(filter primitive.M, collName string) int64 {
 
 }
 
-func Find(filter primitive.M, collName string) *mongo.Cursor {
+func Find(filter primitive.M, collName string, result interface{}) *mongo.Cursor {
 	cursor, err := dataBase.Collection(collName).Find(context.TODO(), filter)
 	if err != nil {
 		log.Println("=Find=", err)
@@ -92,18 +89,37 @@ func FindOne(filter primitive.M, collName string) *mongo.SingleResult {
 	return cursor
 }
 
-// func Find(filter, sort bson.M, limit int64, collName string) (*mongo.Cursor, error) {
-// 	findOptions := options.Find()
-// 	findOptions.SetSort(sort)
-// 	findOptions.SetLimit(limit)
-// 	return DataBase.Collection(collName).Find(context.TODO(), filter, findOptions)
+// type MyStruct struct {
+// 	Field1 string `bson:"field1"`
+// 	Field2 int    `bson:"field2"`
 // }
 
-// func FindOneAndUpdate(filter, update bson.M, upsert bool, collName string) *mongo.SingleResult {
-// 	after := options.After
-// 	opt := options.FindOneAndUpdateOptions{
-// 		ReturnDocument: &after,
-// 		Upsert:         &upsert,
+// func Find(filter interface{}, collName string, result interface{}) error {
+// 	cursor, err := dataBase.Collection(collName).Find(context.TODO(), filter)
+// 	if err != nil {
+// 		log.Println("Ошибка при поиске:", err)
+// 		return err
 // 	}
-// 	return a := Collection(collName).FindOneAndUpdate(context.TODO(), filter, update, &opt)
+// 	defer cursor.Close(context.TODO())
+
+// 	// Декодирование результатов в структуру, переданную в качестве аргумента
+// 	if err := cursor.All(context.TODO(), result); err != nil {
+// 		log.Println("Ошибка при декодировании:", err)
+// 		return err
+// 	}
+
+// 	return nil
+// }
+
+// func main() {
+// 	var myData []MyStruct
+
+// 	filter := bson.M{"field1": "value"}
+// 	collName := "collection_name"
+
+// 	if err := Find(filter, collName, &myData); err != nil {
+// 		log.Fatal(err)
+// 	}
+
+// 	fmt.Println(myData)
 // }

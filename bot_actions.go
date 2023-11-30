@@ -1,11 +1,5 @@
 package main
 
-import (
-	"encoding/json"
-	"fmt"
-	"log"
-)
-
 func deleteMessage(chatID, messageID int) (DeleteMessageResponse, error) {
 	route := fmt.Sprintf("deleteMessage?chat_id=%d&message_id=%d", chatID, messageID)
 

@@ -22,8 +22,16 @@ type Message struct {
 		Username  string `json:"username"`
 		Type      string `json:"type"`
 	} `json:"chat"`
-	Date int    `json:"date"`
-	Text string `json:"text"`
+	Date     int        `json:"date"`
+	Text     string     `json:"text"`
+	Entities []Entities `json:"entities"`
+}
+
+type Entities struct {
+	Offset int    `json:"offset"`
+	Length int    `json:"length"`
+	Type   string `json:"type"`
+	URL    string `json:"url"`
 }
 
 type GetChatMemberResponse struct {
