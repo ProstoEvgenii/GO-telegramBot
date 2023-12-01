@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -197,4 +198,39 @@ func writeWords(words []string) {
 		log.Println("=bcc2f5=", result)
 	}
 
+}
+
+func PostToApi(route string, requestBody []byte) (io.ReadCloser, error) {
+	base := "https://api.telegram.org/bot" + os.Getenv("token") + "/" + route
+	res, err := http.Get(base)
+	if err != nil {
+		fmt.Printf("error making http request: %s\n", err)
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+func sendKeyboard(chatID int64, message string, buttons [][]string) error {
+	botToken := "YOUR_BOT_TOKEN"
+	apiUrl := "https://api.telegram.org/bot" + botToken + "/sendMessage"
+
+	// Формирование клавиатуры с кнопками
+	keyboard := map[string]interface{}{
+		"keyboard":        buttons,
+		"resize_keyboard": true, // Опция изменения размера клавиатуры на мобильных устройствах
+	}
+
+	// Формирование сообщения с клавиатурой
+	requestBody, err := json.Marshal(map[string]interface{}{
+		"chat_id":      chatID,
+		"text":         message,
+		"reply_markup": keyboard,
+	})
+	if err != nil {
+		return err
+	}
+
+	// Отправка сообщения с клавиатурой
+	_, err = http.Post(apiUrl, "application/json", bytes.NewBuffer(requestBody))
+	return err
 }
