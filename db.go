@@ -13,7 +13,8 @@ import (
 var dataBase *mongo.Database
 
 func Connect() {
-	uri := "mongodb://" + os.Getenv("LOGIN") + ":" + os.Getenv("PASS") + "@" + os.Getenv("SERVER")
+	// uri := "mongodb://MongoTest:*Super%23Mongo%23Secur*@mongocem.cryptodev.store:32169/"
+	uri := "mongodb://" + os.Getenv("LOGIN") + ":" + os.Getenv("PASS") + "@" + os.Getenv("SERVER") + "/"
 	log.Println("=9791db=", uri)
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
 
@@ -93,27 +94,23 @@ func FindOne(filter primitive.M, collName string) *mongo.SingleResult {
 	return cursor
 }
 
-// type MyStruct struct {
-// 	Field1 string `bson:"field1"`
-// 	Field2 int    `bson:"field2"`
-// }
 
-// func Find(filter interface{}, collName string, result interface{}) error {
-// 	cursor, err := dataBase.Collection(collName).Find(context.TODO(), filter)
-// 	if err != nil {
-// 		log.Println("Ошибка при поиске:", err)
-// 		return err
-// 	}
-// 	defer cursor.Close(context.TODO())
 
-// 	// Декодирование результатов в структуру, переданную в качестве аргумента
-// 	if err := cursor.All(context.TODO(), result); err != nil {
-// 		log.Println("Ошибка при декодировании:", err)
-// 		return err
-// 	}
+func Findtest(filter interface{}, collName string, result interface{}) error {
+	cursor, err := dataBase.Collection(collName).Find(context.TODO(), filter)
+	if err != nil {
+		log.Println("Ошибка при поиске:", err)
+		return err
+	}
+	defer cursor.Close(context.TODO())
 
-// 	return nil
-// }
+	if err := cursor.All(context.TODO(), result); err != nil {
+		log.Println("Ошибка при декодировании:", err)
+		return err
+	}
+
+	return nil
+}
 
 // func main() {
 // 	var myData []MyStruct

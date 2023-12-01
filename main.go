@@ -24,7 +24,12 @@ func main() {
 	}
 	Connect()
 	words := readForbiddenWords("new.txt")
-	writeWords(words)
+	// writeWords(words)
+	filter := bson.M{}
+	var test []ForbiddenWords
+
+	Findtest(filter, "forbiddenWords", &test)
+	log.Println("=e1852e=", test)
 	intervalGetUpdate := 3
 
 	ticker := time.NewTicker(time.Duration(intervalGetUpdate) * time.Second)
@@ -81,9 +86,9 @@ func writeWords(words []string) {
 		filter := bson.M{
 			"word": loweredForbiddenWord,
 		}
-		update := bson.M{
+		update := bson.M{"$set": bson.M{
 			"word": loweredForbiddenWord,
-		}
+		}}
 		result := InsertIfNotExists(filter, update, "forbiddenWords")
 		log.Println("=bcc2f5=", result)
 	}

@@ -43,6 +43,10 @@ type DeleteMessageResponse struct {
 	// Result bool `json:"result"`
 }
 
+type ForbiddenWords struct {
+	Name string `bson:"word"`
+}
+
 // Если нужно декодировать result - создаю структуру и указываю ее в Result как тип данных
 type ChatMemberResult struct {
 	Status string `json:"status"`
