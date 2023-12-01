@@ -23,14 +23,14 @@ func main() {
 		// host = ":80"
 	}
 	Connect()
-	words := readForbiddenWords("new.txt")
-	// writeWords(words)
 	filter := bson.M{}
-	var test []ForbiddenWords
 
-	Findtest(filter, "forbiddenWords", &test)
-	log.Println("=e1852e=", test)
+	var forbiddenWords []ForbiddenWords
+	var whiteList []WhiteList
+	FindReturnDecoded(filter, "forbiddenWords", &forbiddenWords)
+	FindReturnDecoded(filter, "whiteList", &whiteList)
 	intervalGetUpdate := 3
+	log.Println("=014257=", whiteList)
 
 	ticker := time.NewTicker(time.Duration(intervalGetUpdate) * time.Second)
 	defer ticker.Stop()
@@ -48,17 +48,121 @@ func main() {
 			for _, item := range response.Result {
 				offset = item.UpdateID + 1
 
-				if item.Message.From.Username != "dmitriibelov" {
-					if containsForbiddenWord(item.Message, words) {
-						deleteMessage(item.Message.Chat.ID, item.Message.MessageID)
-					}
+				if !isAdmin(item.Message, whiteList) {
+					loweredText := strings.ToLower(item.Message.Text)
+
 					if len(item.Message.Entities) != 0 {
-						handleEntities(item.Message.Entities, item.Message.Text)
+						if !handleEntities(item.Message.Entities, loweredText, whiteList) {
+							deleteMessage(item.Message.Chat.ID, item.Message.MessageID)
+						}
+
+					} else if isContainsForbiddenWord(loweredText, forbiddenWords) {
+						deleteMessage(item.Message.Chat.ID, item.Message.MessageID)
 					}
 				}
 			}
 		}
 	}
+}
+
+func isAdmin(message Message, whiteList []WhiteList) bool {
+	user := message.From.Username
+	adminsMap := make(map[string]bool)
+	for _, item := range whiteList {
+		if item.Type == "admin" {
+			adminsMap[item.Content] = true
+		}
+	}
+	return adminsMap[user]
+}
+
+func GetToApi(route string) (io.ReadCloser, error) {
+	base := "https://api.telegram.org/bot" + os.Getenv("token") + "/" + route
+	res, err := http.Get(base)
+	if err != nil {
+		fmt.Printf("error making http request: %s\n", err)
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+func handleEntities(entities []Entities, messageText string, whiteList []WhiteList) bool {
+
+	for _, entity := range entities {
+		if entity.Type == "mention" {
+			//Обрабатывать разрешенные упоминания
+			start := entity.Offset
+			stop := start + entity.Length
+			mention := messageText[start:stop]
+			for _, item := range whiteList {
+				if item.Type == "mention" && item.Content == mention {
+					return true
+				}
+			}
+			return false
+		}
+		if entity.Type == "url" {
+			start := entity.Offset
+			stop := start + entity.Length
+			url := messageText[start:stop]
+			//Обрабатывать разрешенные ссылки
+			for _, item := range whiteList {
+				if item.Type == entity.Type && strings.Contains(url, item.Content) {
+					return true
+				}
+			}
+			return false
+
+		}
+		if entity.Type == "text_link" {
+			//Обрабатывать разрешенные ссылки
+			for _, item := range whiteList {
+				if item.Type == "url" && strings.Contains(entity.URL, item.Content) {
+					return true
+				}
+			}
+			return false
+		}
+
+	}
+	return false
+}
+func isContainsForbiddenWord(message string, forbiddenWords []ForbiddenWords) bool {
+	message = regexp.MustCompile("[^a-zA-Zа-яА-Я0-9\\s]+").ReplaceAllString(message, "")
+	messageWords := strings.Fields(message)
+
+	forbiddenMap := make(map[string]bool)
+	for _, fword := range forbiddenWords {
+		forbiddenMap[strings.ToLower(fword.Word)] = true
+	}
+
+	for _, messageWord := range messageWords {
+		if forbiddenMap[messageWord] {
+			log.Printf("=Сообщение будет удалено из-за слова %s", messageWord)
+			return true
+
+		}
+	}
+	return false
+}
+
+func getUpdate(offset int) (GetUpdates, error) {
+	resBody, err := GetToApi(fmt.Sprintf("getUpdates?offset=%d", offset))
+	if err != nil {
+		return GetUpdates{}, fmt.Errorf("error fetching data: %s", err)
+	}
+	defer resBody.Close()
+
+	var response GetUpdates
+	if err := json.NewDecoder(resBody).Decode(&response); err != nil {
+		return GetUpdates{}, fmt.Errorf("error decoding JSON: %s", err)
+	}
+
+	return response, nil
+}
+
+func Start(host string) {
+	http.ListenAndServe(host, nil)
 }
 
 func readForbiddenWords(filename string) []string {
@@ -93,82 +197,4 @@ func writeWords(words []string) {
 		log.Println("=bcc2f5=", result)
 	}
 
-}
-
-func GetToApi(route string) (io.ReadCloser, error) {
-	base := "https://api.telegram.org/bot" + os.Getenv("token") + "/" + route
-	res, err := http.Get(base)
-	if err != nil {
-		fmt.Printf("error making http request: %s\n", err)
-		return nil, err
-	}
-	return res.Body, nil
-}
-
-func handleEntities(entities []Entities, messageText string) {
-	for _, entity := range entities {
-		if entity.Type == "mention" {
-			start := entity.Offset
-			stop := start + entity.Length
-			url := messageText[start:stop]
-			//Обрабатывать разрешенные упоминания
-			log.Println("=adc6e2=", url)
-			return
-		}
-		if entity.Type == "url" {
-			start := entity.Offset
-			stop := start + entity.Length
-			url := messageText[start:stop]
-			//Обрабатывать разрешенные ссылки
-			log.Println("=adc6e2=", url)
-			return
-		}
-		if entity.Type == "text_link" {
-			//Обрабатывать разрешенные ссылки
-			log.Println("=902e68=", entity.URL)
-			return
-		}
-
-	}
-
-}
-func containsForbiddenWord(message Message, forbiddenWords []string) bool {
-	loweredText := strings.Fields(strings.ToLower(message.Text))
-	regClean := regexp.MustCompile("[^a-zA-Zа-яА-Я0-9]+")
-	// regUsername := regexp.MustCompile(`@([a-zA-Z0-9]+)`)
-	for _, messageWord := range loweredText {
-		for _, forbiddenWord := range forbiddenWords {
-			loweredForbiddenWord := strings.ToLower(forbiddenWord)
-			cleanedMessageWord := regClean.ReplaceAllString(messageWord, "")
-			if cleanedMessageWord == loweredForbiddenWord {
-				// log.Println("=7c7444=", cleanedMessageWord)
-				log.Printf("=Сообщение будет удалено из-за слова %s", forbiddenWord)
-				return true
-			}
-			// else if regUsername.MatchString(messageWord) {
-			// 	log.Printf("=Сообщение  %s удалено. \nИспользование логина", messageWord)
-			// 	return true
-			// }
-		}
-	}
-	return false
-}
-
-func getUpdate(offset int) (GetUpdates, error) {
-	resBody, err := GetToApi(fmt.Sprintf("getUpdates?offset=%d", offset))
-	if err != nil {
-		return GetUpdates{}, fmt.Errorf("error fetching data: %s", err)
-	}
-	defer resBody.Close()
-
-	var response GetUpdates
-	if err := json.NewDecoder(resBody).Decode(&response); err != nil {
-		return GetUpdates{}, fmt.Errorf("error decoding JSON: %s", err)
-	}
-
-	return response, nil
-}
-
-func Start(host string) {
-	http.ListenAndServe(host, nil)
 }

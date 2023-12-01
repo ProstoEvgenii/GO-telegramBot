@@ -67,7 +67,7 @@ func CountDocuments(filter primitive.M, collName string) int64 {
 
 }
 
-func Find(filter primitive.M, collName string, result interface{}) *mongo.Cursor {
+func FindReturnCursor(filter primitive.M, collName string, result interface{}) *mongo.Cursor {
 	cursor, err := dataBase.Collection(collName).Find(context.TODO(), filter)
 	if err != nil {
 		log.Println("=Find=", err)
@@ -92,16 +92,17 @@ func FindOne(filter primitive.M, collName string) *mongo.SingleResult {
 	return cursor
 }
 
-func Findtest(filter interface{}, collName string, result interface{}) error {
+func FindReturnDecoded(filter interface{}, collName string, result interface{}) error {
+
 	cursor, err := dataBase.Collection(collName).Find(context.TODO(), filter)
 	if err != nil {
-		log.Println("Ошибка при поиске:", err)
+		log.Println("Ошибка cursor в FindReturnDecoded:", err)
 		return err
 	}
-	defer cursor.Close(context.TODO())
 
+	// defer cursor.Close(context.TODO())
 	if err := cursor.All(context.TODO(), result); err != nil {
-		log.Println("Ошибка при декодировании:", err)
+		log.Println("Ошибка при декодировании в FindReturnDecoded:", err)
 		return err
 	}
 

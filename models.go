@@ -1,5 +1,7 @@
 package main
 
+import "time"
+
 type GetUpdates struct {
 	Ok     bool `json:"ok"`
 	Result []struct {
@@ -44,7 +46,14 @@ type DeleteMessageResponse struct {
 }
 
 type ForbiddenWords struct {
-	Name string `bson:"word"`
+	Word string `bson:"word"`
+}
+
+type WhiteList struct {
+	Type    string    `bson:"type"`
+	Content string    `bson:"content"`
+	Added   time.Time `bson:"added"`
+	AddedBy string    `bson:"addedBy"`
 }
 
 // Если нужно декодировать result - создаю структуру и указываю ее в Result как тип данных
