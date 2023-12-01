@@ -13,9 +13,7 @@ import (
 var dataBase *mongo.Database
 
 func Connect() {
-	// uri := "mongodb://MongoTest:*Super%23Mongo%23Secur*@mongocem.cryptodev.store:32169/"
-	uri := "mongodb://" + os.Getenv("LOGIN") + ":" + os.Getenv("PASS") + "@" + os.Getenv("SERVER") + "/"
-	log.Println("=9791db=", uri)
+	uri := "mongodb://" + os.Getenv("LOGIN") + ":" + os.Getenv("PASS") + "@" + os.Getenv("SERVER")
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
 
 	if err != nil {
@@ -93,8 +91,6 @@ func FindOne(filter primitive.M, collName string) *mongo.SingleResult {
 	cursor := dataBase.Collection(collName).FindOne(ctx, filter)
 	return cursor
 }
-
-
 
 func Findtest(filter interface{}, collName string, result interface{}) error {
 	cursor, err := dataBase.Collection(collName).Find(context.TODO(), filter)
