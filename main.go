@@ -1,11 +1,11 @@
 package main
 
 import (
+	"GO-chatModeratorTg/models"
+	"GO-chatModeratorTg/server"
 	"bufio"
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -17,29 +17,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-type SetMenu struct {
-	Command     string `json:"command"`
-	Description string `json:"description"`
-}
-
-type InlineKeyboardButton struct {
-	Text         string `json:"text"`
-	CallbackData string `json:"callback_data"`
-}
-type InlineKeyboardMarkup struct {
-	InlineKeyboard [][]InlineKeyboardButton `json:"inline_keyboard"`
-}
-
-type SendMessage struct {
-	ChatID      int64                 `json:"chat_id"`
-	MessageID   int64                 `json:"message_id"`
-	Text        string                `json:"text"`
-	ReplyMarkup *InlineKeyboardMarkup `json:"reply_markup,omitempty"`
-}
-type UserState struct {
-	WaitingInput bool // Флаг ожидания ввода
-}
-
 func main() {
 	// host := "127.0.0.1:80"
 	if err := godotenv.Load(".env"); err != nil {
@@ -49,12 +26,11 @@ func main() {
 	Connect()
 	filter := bson.M{}
 
-	var forbiddenWords []ForbiddenWords
-	var whiteList []WhiteList
+	var forbiddenWords []models.ForbiddenWords
+	var whiteList []models.WhiteList
 	FindReturnDecoded(filter, "forbiddenWords", &forbiddenWords)
 	FindReturnDecoded(filter, "whiteList", &whiteList)
 	intervalGetUpdate := 3
-	// log.Println("=014257=", whiteList)
 
 	ticker := time.NewTicker(time.Duration(intervalGetUpdate) * time.Second)
 	defer ticker.Stop()
@@ -124,7 +100,7 @@ func userInputHandle(input, operation string) {
 
 }
 
-func isAdmin(message Message, whiteList []WhiteList) bool {
+func isAdmin(message models.Message, whiteList []models.WhiteList) bool {
 	user := message.From.Username
 	adminsMap := make(map[string]bool)
 	for _, item := range whiteList {
@@ -135,24 +111,14 @@ func isAdmin(message Message, whiteList []WhiteList) bool {
 	return adminsMap[user]
 }
 
-func GetToApi(route string) (io.ReadCloser, error) {
-	base := "https://api.telegram.org/bot" + os.Getenv("token") + "/" + route
-	res, err := http.Get(base)
-	if err != nil {
-		fmt.Printf("error making http request: %s\n", err)
-		return nil, err
-	}
-	return res.Body, nil
-}
-
-func handleBotCommand(entities []Entities, messageText string) {
+func handleBotCommand(entities []models.Entities, messageText string) {
 	switch command := isBotCommands(entities, messageText); command {
 	case "/settings":
-		categoryCommands := []InlineKeyboardButton{
+		categoryCommands := []models.InlineKeyboardButton{
 			{Text: "Запрещенные слова", CallbackData: "forbidden_words"},
 			{Text: "WhiteList", CallbackData: "whitelist"},
 		}
-		sendKeybordMessage(2135753546, "Выберите категорию:", [][]InlineKeyboardButton{categoryCommands})
+		keyboard.sendKeybordMessage(2135753546, "Выберите категорию:", [][]models.InlineKeyboardButton{categoryCommands})
 
 	case "/status":
 		fmt.Println(command, "is great!")
@@ -161,35 +127,8 @@ func handleBotCommand(entities []Entities, messageText string) {
 	}
 
 }
-func editKeybordMessage(text string, chatID int64, messageID int64, keyboard [][]InlineKeyboardButton) {
-	message := SendMessage{
-		ChatID:    chatID,
-		Text:      text,
-		MessageID: messageID,
-		ReplyMarkup: &InlineKeyboardMarkup{
-			InlineKeyboard: keyboard,
-		},
-	}
-	messageJSON, _ := json.Marshal(message)
-	if _, err := PostToApi("editMessageReplyMarkup", messageJSON); err != nil {
-		log.Println("=52a1d9=", err)
-	}
-}
-func sendKeybordMessage(chatID int64, text string, keyboard [][]InlineKeyboardButton) {
-	message := SendMessage{
-		ChatID: chatID,
-		Text:   text,
-		ReplyMarkup: &InlineKeyboardMarkup{
-			InlineKeyboard: keyboard,
-		},
-	}
 
-	messageJSON, _ := json.Marshal(message)
-	if _, err := PostToApi("sendMessage", messageJSON); err != nil {
-		log.Println("=52a1d9=", err)
-	}
-}
-func isBotCommands(entities []Entities, messageText string) string {
+func isBotCommands(entities []models.Entities, messageText string) string {
 	for _, entity := range entities {
 		if entity.Type == "bot_command" {
 			//Обрабатывать разрешенные упоминания
@@ -201,7 +140,7 @@ func isBotCommands(entities []Entities, messageText string) string {
 	}
 	return ""
 }
-func handleEntities(entities []Entities, messageText string, whiteList []WhiteList) bool {
+func handleEntities(entities []models.Entities, messageText string, whiteList []models.WhiteList) bool {
 
 	for _, entity := range entities {
 		if entity.Type == "mention" {
@@ -242,7 +181,7 @@ func handleEntities(entities []Entities, messageText string, whiteList []WhiteLi
 	}
 	return false
 }
-func isContainsForbiddenWord(message string, forbiddenWords []ForbiddenWords) bool {
+func isContainsForbiddenWord(message string, forbiddenWords []models.ForbiddenWords) bool {
 	message = regexp.MustCompile("[^a-zA-Zа-яА-Я0-9\\s]+").ReplaceAllString(message, "")
 	messageWords := strings.Fields(message)
 
@@ -261,16 +200,16 @@ func isContainsForbiddenWord(message string, forbiddenWords []ForbiddenWords) bo
 	return false
 }
 
-func getUpdate(offset int) (GetUpdates, error) {
-	resBody, err := GetToApi(fmt.Sprintf("getUpdates?offset=%d", offset))
+func getUpdate(offset int) (models.GetUpdates, error) {
+	resBody, err := server.GetToApi(fmt.Sprintf("getUpdates?offset=%d", offset))
 	if err != nil {
-		return GetUpdates{}, fmt.Errorf("error fetching data: %s", err)
+		return models.GetUpdates{}, fmt.Errorf("error fetching data: %s", err)
 	}
 	defer resBody.Close()
 
-	var response GetUpdates
+	var response models.GetUpdates
 	if err := json.NewDecoder(resBody).Decode(&response); err != nil {
-		return GetUpdates{}, fmt.Errorf("error decoding JSON: %s", err)
+		return models.GetUpdates{}, fmt.Errorf("error decoding JSON: %s", err)
 	}
 
 	return response, nil
@@ -280,22 +219,12 @@ func Start(host string) {
 	http.ListenAndServe(host, nil)
 }
 
-func PostToApi(route string, requestBody []byte) (io.ReadCloser, error) {
-	base := "https://api.telegram.org/bot" + os.Getenv("token") + "/" + route
-	res, err := http.Post(base, "application/json", bytes.NewBuffer(requestBody))
-	if err != nil {
-		fmt.Printf("error making http request: %s\n", err)
-		return nil, err
-	}
-	return res.Body, nil
-}
-
 func sendMenu() error {
 	// Формирование меню с описанием
-	commands := []SetMenu{
-		{"/status", "Статус"},
-		{"/settings", "Настройки"},
-		{"/history", "История"},
+	commands := []models.SetMenu{
+		{Command: "/status", Description: "Статус"},
+		{Command: "/settings", Description: "Настройки"},
+		{Command: "/history", Description: "История"},
 	}
 	commandsJSON := map[string]interface{}{
 		"commands": commands,
@@ -306,7 +235,7 @@ func sendMenu() error {
 	if err != nil {
 		return err
 	}
-	if res, err := PostToApi("setMyCommands", requestBody); err != nil {
+	if res, err := server.PostToApi("setMyCommands", requestBody); err != nil {
 		log.Println("=c77107=", res)
 		return err
 	}

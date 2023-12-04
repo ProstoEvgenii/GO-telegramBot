@@ -1,4 +1,4 @@
-package main
+package models
 
 import "time"
 
@@ -42,12 +42,11 @@ type User struct {
 }
 
 type Chat struct {
-	ID        int64    `json:"id"`
+	ID        int64  `json:"id"`
 	FirstName string `json:"first_name"`
 	Username  string `json:"username"`
 	Type      string `json:"type"`
 }
-
 
 type Entities struct {
 	Offset int    `json:"offset"`
@@ -79,4 +78,27 @@ type WhiteList struct {
 // Если нужно декодировать result - создаю структуру и указываю ее в Result как тип данных
 type ChatMemberResult struct {
 	Status string `json:"status"`
+}
+
+type SetMenu struct {
+	Command     string `json:"command"`
+	Description string `json:"description"`
+}
+
+type InlineKeyboardButton struct {
+	Text         string `json:"text"`
+	CallbackData string `json:"callback_data"`
+}
+type InlineKeyboardMarkup struct {
+	InlineKeyboard [][]InlineKeyboardButton `json:"inline_keyboard"`
+}
+
+type SendMessage struct {
+	ChatID      int64                 `json:"chat_id"`
+	MessageID   int64                 `json:"message_id"`
+	Text        string                `json:"text"`
+	ReplyMarkup *InlineKeyboardMarkup `json:"reply_markup,omitempty"`
+}
+type UserState struct {
+	WaitingInput bool // Флаг ожидания ввода
 }
