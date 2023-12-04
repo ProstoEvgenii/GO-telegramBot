@@ -5,12 +5,14 @@ import "time"
 type GetUpdates struct {
 	Ok     bool `json:"ok"`
 	Result []struct {
-		UpdateID int     `json:"update_id"`
-		Message  Message `json:"message"`
+		UpdateID int          `json:"update_id"`
+		Message  Message      `json:"message"`
+		Callback CallbackData `json:"callback_query"`
 	} `json:"result"`
 }
+
 type Message struct {
-	MessageID int `json:"message_id"`
+	MessageID int64 `json:"message_id"`
 	From      struct {
 		ID           int    `json:"id"`
 		IsBot        bool   `json:"is_bot"`
@@ -18,16 +20,34 @@ type Message struct {
 		Username     string `json:"username"`
 		LanguageCode string `json:"language_code"`
 	} `json:"from"`
-	Chat struct {
-		ID        int    `json:"id"`
-		FirstName string `json:"first_name"`
-		Username  string `json:"username"`
-		Type      string `json:"type"`
-	} `json:"chat"`
+	Chat     Chat       `json:"chat"`
 	Date     int        `json:"date"`
 	Text     string     `json:"text"`
 	Entities []Entities `json:"entities"`
 }
+
+type CallbackData struct {
+	ID       string  `json:"id"`
+	From     User    `json:"from"`
+	Message  Message `json:"message"`
+	Data     string  `json:"data"`
+	Chat     Chat    `json:"chat"`
+	DateTime int     `json:"date"`
+}
+
+type User struct {
+	ID        int    `json:"id"`
+	FirstName string `json:"first_name"`
+	Username  string `json:"username"`
+}
+
+type Chat struct {
+	ID        int64    `json:"id"`
+	FirstName string `json:"first_name"`
+	Username  string `json:"username"`
+	Type      string `json:"type"`
+}
+
 
 type Entities struct {
 	Offset int    `json:"offset"`

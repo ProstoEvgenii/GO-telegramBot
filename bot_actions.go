@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-func deleteMessage(chatID, messageID int) (DeleteMessageResponse, error) {
+func deleteMessage(chatID, messageID int64) (DeleteMessageResponse, error) {
 	route := fmt.Sprintf("deleteMessage?chat_id=%d&message_id=%d", chatID, messageID)
 
 	resp, err := GetToApi(route)
@@ -22,7 +22,9 @@ func deleteMessage(chatID, messageID int) (DeleteMessageResponse, error) {
 	return response, nil
 }
 
-func getChatMember(chatID, userID int) (GetChatMemberResponse, error) {
+
+
+func getChatMember(chatID, userID int64) (GetChatMemberResponse, error) {
 	route := fmt.Sprintf("getChatMember?chat_id=%d&user_id=%d", chatID, userID)
 
 	resp, err := GetToApi(route)

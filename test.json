@@ -9,18 +9,4 @@
         "can_read_all_group_messages": false,
         "supports_inline_queries": false
     }
-},
-
-{
-    "keyboard": [
-        [
-            "New Button 1",
-            "New Button 2"
-        ],
-        [
-            "New Button 3",
-            "New Button 4"
-        ]
-    ],
-    "resize_keyboard": true
 }
