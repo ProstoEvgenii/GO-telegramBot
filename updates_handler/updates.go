@@ -1,6 +1,7 @@
 package updates
 
 import (
+	"GO-chatModeratorTg/db"
 	"GO-chatModeratorTg/keyboard"
 	"GO-chatModeratorTg/models"
 	"GO-chatModeratorTg/tg"
@@ -17,49 +18,59 @@ var forbiddenWords []models.ForbiddenWords
 
 func GetWhiteListAndForbiddeWords() {
 	filter := bson.M{}
-
 	db.FindReturnDecoded(filter, "forbiddenWords", &forbiddenWords)
-	db.ForbiddenWords(filter, "whiteList", &whiteList)
+	db.FindReturnDecoded(filter, "whiteList", &whiteList)
 }
 
 func UpdatesHandler(update models.Result) {
 	if update.Callback.ID != "" {
-		keyboard.HandleForbidenWordNavigation(update.Callback)
+		keyboard.HandleSettingsNavigation(update.Callback)
 	} else {
 		handleMessages(update.Message)
 	}
 }
+
 func handleMessages(message models.Message) {
 	if !isAdmin(message, whiteList) && message.Chat.Type != "private" {
-		loweredText := strings.ToLower(message.Text)
-
-		if len(message.Entities) != 0 {
-			if !handleEntities(message.Entities, loweredText, whiteList) {
-				tg.DeleteMessage(message.Chat.ID, message.MessageID)
-			}
-
-		} else if isContainsForbiddenWord(loweredText, forbiddenWords) {
-			tg.DeleteMessage(message.Chat.ID, message.MessageID)
-		}
+		handleUserPublicMessages(message)
 	}
 	if isAdmin(message, whiteList) && message.Chat.Type == "private" {
-		state, exists := keyboard.UserStates[message.From.Username]
-		//Здесь происходит проверка находится ли пользователь в map Состояния юзеров
-		//Если нет - далее,если да проверка  - проверка на ожидание слова
-		if !exists {
-			loweredText := strings.ToLower(message.Text)
-			handleBotCommand(message.Entities, loweredText)
-		}
-		if state.WaitingForInput {
-			state.InputWord = message.Text
-			userInputHandle(state.InputWord, state.Operation)
-			delete(keyboard.UserStates, message.From.Username)
-		}
-
+		handleAdminPrivateMessages(message)
 	} else {
-		//Добавить отправку сообщения "Вы не являетесь администрпатором."
+		//Добавить отправку сообщения "Вы не являетесь администратором."
 	}
 }
+
+
+
+func handleUserPublicMessages(message models.Message) {
+	loweredText := strings.ToLower(message.Text)
+
+	if len(message.Entities) != 0 {
+		if !handleEntities(message.Entities, loweredText, whiteList) {
+			tg.DeleteMessage(message.Chat.ID, message.MessageID)
+		}
+	} else if isContainsForbiddenWord(loweredText, forbiddenWords) {
+		tg.DeleteMessage(message.Chat.ID, message.MessageID)
+	}
+}
+
+
+func handleAdminPrivateMessages(message models.Message) {
+	state, exists := keyboard.UserStates[message.From.Username]
+	//Здесь происходит проверка находится ли пользователь в map Состояния юзеров
+	//Если нет - далее,если да проверка  - проверка на ожидание слова
+	if !exists {
+		loweredText := strings.ToLower(message.Text)
+		handleBotCommand(message.Entities, loweredText)
+	}
+	if state.WaitingForInput {
+		state.InputWord = message.Text
+		userInputHandle(state.InputWord, state.Operation)
+		delete(keyboard.UserStates, message.From.Username)
+	}
+}
+
 func isAdmin(message models.Message, whiteList []models.WhiteList) bool {
 	user := message.From.Username
 	adminsMap := make(map[string]bool)

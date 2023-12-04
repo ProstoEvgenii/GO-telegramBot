@@ -9,7 +9,7 @@ import (
 
 var UserStates = make(map[string]models.UserState) // Хранилище состояний пользователей
 
-func HandleForbidenWordNavigation(callbackResult models.CallbackData) {
+func HandleSettingsNavigation(callbackResult models.CallbackData) {
 	switch callback := callbackResult.Data; callback {
 	case "home":
 		newKeyboard := [][]models.InlineKeyboardButton{
@@ -64,8 +64,8 @@ func HandleForbidenWordNavigation(callbackResult models.CallbackData) {
 func editKeybordMessage(text string, chatID int64, messageID int64, keyboard [][]models.InlineKeyboardButton) {
 	message := models.SendMessage{
 		ChatID:    chatID,
-		Text:      text,
 		MessageID: messageID,
+		Text:      text,
 		ReplyMarkup: &models.InlineKeyboardMarkup{
 			InlineKeyboard: keyboard,
 		},
