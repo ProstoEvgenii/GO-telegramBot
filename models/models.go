@@ -3,14 +3,15 @@ package models
 import "time"
 
 type GetUpdates struct {
-	Ok     bool `json:"ok"`
-	Result []struct {
-		UpdateID int          `json:"update_id"`
-		Message  Message      `json:"message"`
-		Callback CallbackData `json:"callback_query"`
-	} `json:"result"`
+	Ok     bool     `json:"ok"`
+	Result []Result `json:"result"`
 }
 
+type Result struct {
+	UpdateID int          `json:"update_id"`
+	Message  Message      `json:"message"`
+	Callback CallbackData `json:"callback_query"`
+}
 type Message struct {
 	MessageID int64 `json:"message_id"`
 	From      struct {
@@ -55,10 +56,11 @@ type Entities struct {
 	URL    string `json:"url"`
 }
 
-type GetChatMemberResponse struct {
-	Ok     bool             `json:"ok"`
-	Result ChatMemberResult `json:"result"`
-}
+// type GetChatMemberResponse struct {
+// 	Ok     bool             `json:"ok"`
+// 	Result ChatMemberResult `json:"result"`
+// }
+
 type DeleteMessageResponse struct {
 	Ok bool `json:"ok"`
 	// Result bool `json:"result"`
@@ -100,5 +102,7 @@ type SendMessage struct {
 	ReplyMarkup *InlineKeyboardMarkup `json:"reply_markup,omitempty"`
 }
 type UserState struct {
-	WaitingInput bool // Флаг ожидания ввода
+	WaitingForInput bool
+	InputWord       string
+	Operation       string
 }

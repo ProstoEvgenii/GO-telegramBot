@@ -7,6 +7,8 @@ import (
 	"log"
 )
 
+var UserStates = make(map[string]models.UserState) // Хранилище состояний пользователей
+
 func HandleForbidenWordNavigation(callbackResult models.CallbackData) {
 	switch callback := callbackResult.Data; callback {
 	case "home":
@@ -48,7 +50,7 @@ func HandleForbidenWordNavigation(callbackResult models.CallbackData) {
 		editKeybordMessage("Выберите тип:", callbackResult.Message.Chat.ID, callbackResult.Message.MessageID, newKeyboard)
 		userID := callbackResult.From.Username
 		word := ""
-		main.UserStates[userID] = models.UserState{
+		UserStates[userID] = models.UserState{
 			WaitingForInput: true,
 			InputWord:       word,
 			Operation:       callback,
@@ -73,7 +75,7 @@ func editKeybordMessage(text string, chatID int64, messageID int64, keyboard [][
 		log.Println("=52a1d9=", err)
 	}
 }
-func sendKeybordMessage(chatID int64, text string, keyboard [][]models.InlineKeyboardButton) {
+func SendKeybordMessage(chatID int64, text string, keyboard [][]models.InlineKeyboardButton) {
 	message := models.SendMessage{
 		ChatID: chatID,
 		Text:   text,
