@@ -24,24 +24,37 @@ func GetWhiteListAndForbiddeWords() {
 
 func UpdatesHandler(update models.Result) {
 	if update.Callback.ID != "" {
-		keyboard.HandleSettingsNavigation(update.Callback)
+		if isAdmin(update.Callback.From.Username, whiteList) && update.Callback.Message.Chat.Type == "private" {
+			keyboard.HandleSettingsNavigation(update.Callback)
+		} else {
+			message := models.SendMessage{
+				ChatID:    update.Callback.Message.Chat.ID,
+				Text:      "Бот выполняет команды только администратора.",
+				ParseMode: "None",
+			}
+			tg.SendMessage(message)
+		}
+
 	} else {
 		handleMessages(update.Message)
 	}
 }
 
 func handleMessages(message models.Message) {
-	if !isAdmin(message, whiteList) && message.Chat.Type != "private" {
+	if !isAdmin(message.From.Username, whiteList) && message.Chat.Type != "private" {
 		handleUserPublicMessages(message)
 	}
-	if isAdmin(message, whiteList) && message.Chat.Type == "private" {
+	if isAdmin(message.From.Username, whiteList) && message.Chat.Type == "private" {
 		handleAdminPrivateMessages(message)
 	} else {
+		message := models.SendMessage{
+			ChatID: message.Chat.ID,
+			Text:   "Бот выполняет команды только администратора.",
+		}
+		tg.SendMessage(message)
 		//Добавить отправку сообщения "Вы не являетесь администратором."
 	}
 }
-
-
 
 func handleUserPublicMessages(message models.Message) {
 	loweredText := strings.ToLower(message.Text)
@@ -55,14 +68,13 @@ func handleUserPublicMessages(message models.Message) {
 	}
 }
 
-
 func handleAdminPrivateMessages(message models.Message) {
 	state, exists := keyboard.UserStates[message.From.Username]
 	//Здесь происходит проверка находится ли пользователь в map Состояния юзеров
 	//Если нет - далее,если да проверка  - проверка на ожидание слова
 	if !exists {
 		loweredText := strings.ToLower(message.Text)
-		handleBotCommand(message.Entities, loweredText)
+		handleBotCommand(message, loweredText)
 	}
 	if state.WaitingForInput {
 		state.InputWord = message.Text
@@ -71,9 +83,9 @@ func handleAdminPrivateMessages(message models.Message) {
 	}
 }
 
-func isAdmin(message models.Message, whiteList []models.WhiteList) bool {
-	user := message.From.Username
+func isAdmin(user string, whiteList []models.WhiteList) bool {
 	adminsMap := make(map[string]bool)
+
 	for _, item := range whiteList {
 		if item.Type == "admin" {
 			adminsMap[item.Content] = true
@@ -81,14 +93,21 @@ func isAdmin(message models.Message, whiteList []models.WhiteList) bool {
 	}
 	return adminsMap[user]
 }
-func handleBotCommand(entities []models.Entities, messageText string) {
-	switch command := isBotCommands(entities, messageText); command {
+func handleBotCommand(message models.Message, messageText string) {
+	switch command := isBotCommands(message.Entities, messageText); command {
 	case "/settings":
 		categoryCommands := []models.InlineKeyboardButton{
 			{Text: "Запрещенные слова", CallbackData: "forbidden_words"},
 			{Text: "WhiteList", CallbackData: "whitelist"},
 		}
-		keyboard.SendKeybordMessage(2135753546, "Выберите категорию:", [][]models.InlineKeyboardButton{categoryCommands})
+		messageKeybord := models.SendMessage{
+			ChatID: message.Chat.ID,
+			Text:   "Выберите категорию:",
+			ReplyMarkup: &models.InlineKeyboardMarkup{
+				InlineKeyboard: [][]models.InlineKeyboardButton{categoryCommands},
+			},
+		}
+		tg.SendMessage(messageKeybord)
 
 	case "/status":
 		fmt.Println(command, "is great!")

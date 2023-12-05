@@ -96,10 +96,12 @@ type InlineKeyboardMarkup struct {
 }
 
 type SendMessage struct {
-	ChatID      int64                 `json:"chat_id"`
-	MessageID   int64                 `json:"message_id"`
-	Text        string                `json:"text"`
-	ReplyMarkup *InlineKeyboardMarkup `json:"reply_markup,omitempty"`
+	ChatID           int64                 `json:"chat_id"`
+	MessageID        int64                 `json:"message_id"`
+	Text             string                `json:"text"`
+	ReplyToMessageID int64                 `json:"reply_to_message_id"`
+	ParseMode        string                `json:"parse_mode"`
+	ReplyMarkup      *InlineKeyboardMarkup `json:"reply_markup,omitempty"`
 }
 type UserState struct {
 	WaitingForInput bool

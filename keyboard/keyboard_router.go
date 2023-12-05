@@ -49,12 +49,11 @@ func HandleSettingsNavigation(callbackResult models.CallbackData) {
 
 		editKeybordMessage("Выберите тип:", callbackResult.Message.Chat.ID, callbackResult.Message.MessageID, newKeyboard)
 		userID := callbackResult.From.Username
-		word := ""
 		UserStates[userID] = models.UserState{
 			WaitingForInput: true,
-			InputWord:       word,
 			Operation:       callback,
 		}
+		// log.Println("=cbd78f=", UserStates)
 	}
 
 	log.Println("Received callback:", callbackResult.Data)
@@ -72,20 +71,6 @@ func editKeybordMessage(text string, chatID int64, messageID int64, keyboard [][
 	}
 	messageJSON, _ := json.Marshal(message)
 	if _, err := server.PostToApi("editMessageReplyMarkup", messageJSON); err != nil {
-		log.Println("=52a1d9=", err)
-	}
-}
-func SendKeybordMessage(chatID int64, text string, keyboard [][]models.InlineKeyboardButton) {
-	message := models.SendMessage{
-		ChatID: chatID,
-		Text:   text,
-		ReplyMarkup: &models.InlineKeyboardMarkup{
-			InlineKeyboard: keyboard,
-		},
-	}
-
-	messageJSON, _ := json.Marshal(message)
-	if _, err := server.PostToApi("sendMessage", messageJSON); err != nil {
 		log.Println("=52a1d9=", err)
 	}
 }

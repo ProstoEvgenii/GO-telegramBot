@@ -21,35 +21,32 @@ func main() {
 		// host = ":80"
 	}
 	db.Connect()
-	intervalGetUpdate := 3
-	intervalGetData := 5
-
+	intervalGetUpdate := 1
+	intervalGetData := 2
+	updates.GetWhiteListAndForbiddeWords()
 	tickerGetUpdates := time.NewTicker(time.Duration(intervalGetUpdate) * time.Second)
-	tickerGetData := time.NewTicker(time.Duration(intervalGetData) * time.Minute)
+	tickerGetData := time.NewTicker(time.Duration(intervalGetData) * time.Second)
 	defer tickerGetUpdates.Stop()
 	offset := 668578288
 	for {
 		select {
 		case <-tickerGetUpdates.C:
-			log.Println("=Получаю обновления каждые=", intervalGetUpdate, "Секунды")
-
+			// log.Println("=Получаю обновления каждые=", intervalGetUpdate, "Секунды")
 			response, err := getUpdate(offset)
 			if err != nil {
-				log.Println("=038abf=", err)
+				log.Println("=Ошибка получения Update=", err)
 			}
-
 			for _, item := range response.Result {
 				updates.UpdatesHandler(item)
 				offset = item.UpdateID + 1
 
 			}
-		}
-		select {
 		case <-tickerGetData.C:
-			log.Println("=Получаю данные из базы каждые=", intervalGetUpdate, "Секунды")
+			// log.Println("=Получаю данные из базы каждые=", intervalGetData, "Секунды")
 			updates.GetWhiteListAndForbiddeWords()
 		}
 	}
+
 }
 
 func Start(host string) {

@@ -23,3 +23,10 @@ func DeleteMessage(chatID, messageID int64) (models.DeleteMessageResponse, error
 	log.Println("=b414b5=", response)
 	return response, nil
 }
+
+func SendMessage(message models.SendMessage) {
+	messageJSON, _ := json.Marshal(message)
+	if _, err := server.PostToApi("sendMessage", messageJSON); err != nil {
+		log.Println("=52a1d9=", err)
+	}
+}
