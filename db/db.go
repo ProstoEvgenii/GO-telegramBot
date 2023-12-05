@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 
@@ -31,21 +32,39 @@ func Connect() {
 	return
 }
 
-func InsertIfNotExists(filter, update primitive.M, collName string) *mongo.UpdateResult {
-	opts := options.Update().SetUpsert(true)
+func InsertIfNotExists(filter, update primitive.M, collName string, upsert bool) bool {
+	opts := options.Update().SetUpsert(upsert)
 	ctx := context.TODO()
 	result, err := dataBase.Collection(collName).UpdateOne(ctx, filter, update, opts)
 	if err != nil {
 		log.Println("=InsertIfNotExists=", err)
 	}
 
-	return result
-	// if result.MatchedCount != 0 {
-	// 	fmt.Println("matched and replaced an existing document")
-	// }
-	// if result.UpsertedCount != 0 {
-	// 	fmt.Printf("inserted a new document with ID %v\n", result.UpsertedID)
-	// }
+	if result.UpsertedCount != 0 {
+		return true
+	}
+	return false
+}
+
+func DeleteDocument(filter primitive.M, collName string) bool {
+	ctx := context.TODO()
+	res, err := dataBase.Collection(collName).DeleteOne(ctx, filter)
+	if err != nil {
+		log.Println("=305e43=", err)
+	}
+	if res.DeletedCount != 0 {
+		return true
+	}
+	return false
+}
+
+func InsertOne(document interface{}, collName string) {
+	ctx := context.TODO()
+	result, err := dataBase.Collection(collName).InsertOne(ctx, document)
+	if err != nil {
+		log.Println("=Find=", err)
+	}
+	fmt.Printf("Document inserted: %v\n", result)
 }
 
 func UpdateIfExists(filter, update primitive.M, collName string) *mongo.UpdateResult {
@@ -93,31 +112,15 @@ func FindOne(filter primitive.M, collName string) *mongo.SingleResult {
 }
 
 func FindReturnDecoded(filter interface{}, collName string, result interface{}) error {
-
 	cursor, err := dataBase.Collection(collName).Find(context.TODO(), filter)
 	if err != nil {
 		log.Println("Ошибка cursor в FindReturnDecoded:", err)
 		return err
 	}
 
-	// defer cursor.Close(context.TODO())
 	if err := cursor.All(context.TODO(), result); err != nil {
 		log.Println("Ошибка при декодировании в FindReturnDecoded:", err)
 		return err
 	}
-
 	return nil
 }
-
-// func main() {
-// 	var myData []MyStruct
-
-// 	filter := bson.M{"field1": "value"}
-// 	collName := "collection_name"
-
-// 	if err := Find(filter, collName, &myData); err != nil {
-// 		log.Fatal(err)
-// 	}
-
-// 	fmt.Println(myData)
-// }

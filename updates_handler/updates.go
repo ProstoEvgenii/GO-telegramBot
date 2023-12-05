@@ -25,7 +25,7 @@ func GetWhiteListAndForbiddeWords() {
 func UpdatesHandler(update models.Result) {
 	if update.Callback.ID != "" {
 		if isAdmin(update.Callback.From.Username, whiteList) && update.Callback.Message.Chat.Type == "private" {
-			keyboard.HandleSettingsNavigation(update.Callback)
+			keyboard.HandleSettings(update.Callback)
 		} else {
 			message := models.SendMessage{
 				ChatID:    update.Callback.Message.Chat.ID,
@@ -78,7 +78,7 @@ func handleAdminPrivateMessages(message models.Message) {
 	}
 	if state.WaitingForInput {
 		state.InputWord = message.Text
-		userInputHandle(state.InputWord, state.Operation)
+		userInputHandle(state, message.Chat.ID)
 		delete(keyboard.UserStates, message.From.Username)
 	}
 }
@@ -97,7 +97,7 @@ func handleBotCommand(message models.Message, messageText string) {
 	switch command := isBotCommands(message.Entities, messageText); command {
 	case "/settings":
 		categoryCommands := []models.InlineKeyboardButton{
-			{Text: "Запрещенные слова", CallbackData: "forbidden_words"},
+			{Text: "Запрещенные слова", CallbackData: "forbiddenwords"},
 			{Text: "WhiteList", CallbackData: "whitelist"},
 		}
 		messageKeybord := models.SendMessage{
@@ -129,12 +129,102 @@ func isBotCommands(entities []models.Entities, messageText string) string {
 	}
 	return ""
 }
-func userInputHandle(input, operation string) {
-	switch operation {
-	case "forbidden_words_add_url":
-		log.Printf("Добавил в базу слово %s", input)
+func userInputHandle(userInput models.UserState, ChatID int64) {
+	message := models.SendMessage{
+		ChatID:    ChatID,
+		ParseMode: "None",
+	}
+	switch userInput.Operation {
+
+	case "forbiddenwords_add":
+		filter := bson.M{
+			"word": userInput.InputWord,
+		}
+		update := bson.M{"$set": bson.M{
+			"word":   userInput.InputWord,
+			"author": userInput.Author,
+		}}
+		if db.InsertIfNotExists(filter, update, "forbiddenWords", true) {
+			message.Text = fmt.Sprintf(`Добавил в базу слово "%s".`, userInput.InputWord)
+			tg.SendMessage(message)
+		} else {
+			message.Text = fmt.Sprintf(`Добавил в базу слово "%s".`, userInput.InputWord)
+			tg.SendMessage(message)
+		}
+	case "forbiddenwords_rm":
+		filter := bson.M{
+			"word": userInput.InputWord,
+		}
+		if db.DeleteDocument(filter, "forbiddenWords") {
+			// log.Printf(`Удалил слово %s из базы.`, userInput.InputWord)
+			message.Text = fmt.Sprintf(`Удалил слово "%s" из базы.`, userInput.InputWord)
+			tg.SendMessage(message)
+		} else {
+			// log.Printf(`Cлово "%s" отсутствует в бд.`, userInput.InputWord)
+			message.Text = fmt.Sprintf(`Cлово "%s" отсутствует в бд.`, userInput.InputWord)
+			tg.SendMessage(message)
+		}
+
+	case "whitelist_add_url":
+		addToWhiteList(userInput, ChatID)
+	case "whitelist_add_mention":
+		addToWhiteList(userInput, ChatID)
+	case "whitelist_add_admin":
+		addToWhiteList(userInput, ChatID)
+	case "whitelist_rm_url":
+		removeFromWhiteList(userInput, ChatID)
+	case "whitelist_rm_mention":
+		removeFromWhiteList(userInput, ChatID)
+	case "whitelist_rm_admin":
+		removeFromWhiteList(userInput, ChatID)
+	}
+}
+func addToWhiteList(userInput models.UserState, ChatID int64) {
+	if userInput.Type != "url" {
+		re := regexp.MustCompile(`@`)
+		userInput.InputWord = re.ReplaceAllString(userInput.InputWord, "")
+	}
+	filter := bson.M{
+		"content": userInput.InputWord,
+		"type":    userInput.Type,
+	}
+	update := bson.M{"$set": bson.M{
+		"content": userInput.InputWord,
+		"type":    userInput.Type,
+		"author":  userInput.Author,
+	}}
+	message := models.SendMessage{
+		ChatID:    ChatID,
+		ParseMode: "None",
+	}
+	if db.InsertIfNotExists(filter, update, "whiteList", true) {
+		// log.Printf(`Добавил "%s" в WhiteList.`, userInput.InputWord)
+		//Добавить вызов функции для записи в лог кем и что сделано
+		message.Text = fmt.Sprintf(`Добавлено %s в WhiteList.`, userInput.InputWord)
+		tg.SendMessage(message)
+	} else {
+		message.Text = fmt.Sprintf(`Тип "%s" уже в WhiteList.`, userInput.InputWord)
+		tg.SendMessage(message)
 	}
 
+}
+func removeFromWhiteList(userInput models.UserState, ChatID int64) {
+	filter := bson.M{
+		"content": userInput.InputWord,
+		"type":    userInput.Type,
+	}
+	message := models.SendMessage{
+		ChatID:    ChatID,
+		ParseMode: "None",
+	}
+	if db.DeleteDocument(filter, "whiteList") {
+		log.Printf(`Удалено %s из базы.`, userInput.InputWord)
+		message.Text = fmt.Sprintf(`Удалено %s из базы.`, userInput.InputWord)
+		tg.SendMessage(message)
+	} else {
+		message.Text = fmt.Sprintf(`Cлово "%s" отсутствует в бд.`, userInput.InputWord)
+		tg.SendMessage(message)
+	}
 }
 
 func handleEntities(entities []models.Entities, messageText string, whiteList []models.WhiteList) bool {

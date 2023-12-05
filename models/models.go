@@ -105,6 +105,13 @@ type SendMessage struct {
 }
 type UserState struct {
 	WaitingForInput bool
+	Author          string
 	InputWord       string
 	Operation       string
+	Type            string
+}
+type EditMessage struct {
+	ChatID    int64  `json:"chat_id"`
+	MessageID int64  `json:"message_id"`
+	Text      string `json:"text"`
 }
