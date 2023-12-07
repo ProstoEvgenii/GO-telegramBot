@@ -24,16 +24,7 @@ func GetWhiteListAndForbiddeWords() {
 
 func UpdatesHandler(update models.Result) {
 	if update.Callback.ID != "" {
-		if isAdmin(update.Callback.From.Username, whiteList) && update.Callback.Message.Chat.Type == "private" {
-			keyboard.HandleSettings(update.Callback)
-		} else {
-			message := models.SendMessage{
-				ChatID:    update.Callback.Message.Chat.ID,
-				Text:      "Бот выполняет команды только администратора.",
-				ParseMode: "None",
-			}
-			tg.SendMessage(message)
-		}
+		handleCallback(update.Callback)
 
 	} else {
 		handleMessages(update.Message)
@@ -42,18 +33,16 @@ func UpdatesHandler(update models.Result) {
 
 func handleMessages(message models.Message) {
 	if !isAdmin(message.From.Username, whiteList) && message.Chat.Type != "private" {
+		//Сообщение пользователя в чат.
 		handleUserPublicMessages(message)
 	}
 	if isAdmin(message.From.Username, whiteList) && message.Chat.Type == "private" {
+		//Сообщения админа в личку.
 		handleAdminPrivateMessages(message)
-	} else {
-		message := models.SendMessage{
-			ChatID: message.Chat.ID,
-			Text:   "Бот выполняет команды только администратора.",
-		}
-		tg.SendMessage(message)
-		//Добавить отправку сообщения "Вы не являетесь администратором."
 	}
+	// tg.SendMessage(message)
+	//Добавить отправку сообщения "Вы не являетесь администратором."
+	// }
 }
 
 func handleUserPublicMessages(message models.Message) {
@@ -61,13 +50,27 @@ func handleUserPublicMessages(message models.Message) {
 
 	if len(message.Entities) != 0 {
 		if !handleEntities(message.Entities, loweredText, whiteList) {
+			//Проверка сущностей используемых в сообщении(ссылки,упоминания)
 			tg.DeleteMessage(message.Chat.ID, message.MessageID)
 		}
 	} else if isContainsForbiddenWord(loweredText, forbiddenWords) {
+		//Проверка на запрещенные слова
 		tg.DeleteMessage(message.Chat.ID, message.MessageID)
 	}
 }
 
+func handleCallback(callBack models.CallbackData) {
+	if isAdmin(callBack.From.Username, whiteList) && callBack.Message.Chat.Type == "private" {
+		keyboard.HandleSettingsCallback(callBack)
+	} else if !isAdmin(callBack.From.Username, whiteList) && callBack.Message.Chat.Type == "private" {
+		message := models.SendMessage{
+			ChatID:    callBack.Message.Chat.ID,
+			Text:      "Бот выполняет команды только администратора.",
+			ParseMode: "None",
+		}
+		tg.SendMessage(message)
+	}
+}
 func handleAdminPrivateMessages(message models.Message) {
 	state, exists := keyboard.UserStates[message.From.Username]
 	//Здесь происходит проверка находится ли пользователь в map Состояния юзеров
@@ -83,16 +86,6 @@ func handleAdminPrivateMessages(message models.Message) {
 	}
 }
 
-func isAdmin(user string, whiteList []models.WhiteList) bool {
-	adminsMap := make(map[string]bool)
-
-	for _, item := range whiteList {
-		if item.Type == "admin" {
-			adminsMap[item.Content] = true
-		}
-	}
-	return adminsMap[user]
-}
 func handleBotCommand(message models.Message, messageText string) {
 	switch command := isBotCommands(message.Entities, messageText); command {
 	case "/settings":
@@ -114,7 +107,6 @@ func handleBotCommand(message models.Message, messageText string) {
 	default:
 
 	}
-
 }
 
 func isBotCommands(entities []models.Entities, messageText string) string {
@@ -135,14 +127,13 @@ func userInputHandle(userInput models.UserState, ChatID int64) {
 		ParseMode: "None",
 	}
 	switch userInput.Operation {
-
 	case "forbiddenwords_add":
 		filter := bson.M{
 			"word": userInput.InputWord,
 		}
 		update := bson.M{"$set": bson.M{
-			"word":   userInput.InputWord,
-			"author": userInput.Author,
+			"word":    userInput.InputWord,
+			"addedBy": userInput.Author,
 		}}
 		if db.InsertIfNotExists(filter, update, "forbiddenWords", true) {
 			message.Text = fmt.Sprintf(`Добавил в базу слово "%s".`, userInput.InputWord)
@@ -179,11 +170,13 @@ func userInputHandle(userInput models.UserState, ChatID int64) {
 		removeFromWhiteList(userInput, ChatID)
 	}
 }
+
 func addToWhiteList(userInput models.UserState, ChatID int64) {
 	if userInput.Type != "url" {
 		re := regexp.MustCompile(`@`)
 		userInput.InputWord = re.ReplaceAllString(userInput.InputWord, "")
 	}
+	// log.Println("=e2ee53=", userInput)
 	filter := bson.M{
 		"content": userInput.InputWord,
 		"type":    userInput.Type,
@@ -191,24 +184,27 @@ func addToWhiteList(userInput models.UserState, ChatID int64) {
 	update := bson.M{"$set": bson.M{
 		"content": userInput.InputWord,
 		"type":    userInput.Type,
-		"author":  userInput.Author,
+		"addedBy": userInput.Author,
 	}}
 	message := models.SendMessage{
 		ChatID:    ChatID,
 		ParseMode: "None",
 	}
 	if db.InsertIfNotExists(filter, update, "whiteList", true) {
-		// log.Printf(`Добавил "%s" в WhiteList.`, userInput.InputWord)
 		//Добавить вызов функции для записи в лог кем и что сделано
-		message.Text = fmt.Sprintf(`Добавлено %s в WhiteList.`, userInput.InputWord)
+		message.Text = fmt.Sprintf(`Добавлен %s "%s" в WhiteList.`, userInput.Type, userInput.InputWord)
 		tg.SendMessage(message)
 	} else {
-		message.Text = fmt.Sprintf(`Тип "%s" уже в WhiteList.`, userInput.InputWord)
+		message.Text = fmt.Sprintf(`%s "%s" уже в WhiteList.`, userInput.Type, userInput.InputWord)
 		tg.SendMessage(message)
 	}
 
 }
 func removeFromWhiteList(userInput models.UserState, ChatID int64) {
+	if userInput.Type != "url" {
+		re := regexp.MustCompile(`@`)
+		userInput.InputWord = re.ReplaceAllString(userInput.InputWord, "")
+	}
 	filter := bson.M{
 		"content": userInput.InputWord,
 		"type":    userInput.Type,
@@ -218,11 +214,11 @@ func removeFromWhiteList(userInput models.UserState, ChatID int64) {
 		ParseMode: "None",
 	}
 	if db.DeleteDocument(filter, "whiteList") {
-		log.Printf(`Удалено %s из базы.`, userInput.InputWord)
-		message.Text = fmt.Sprintf(`Удалено %s из базы.`, userInput.InputWord)
+		log.Printf(`Удалено  %s %s из базы .`, userInput.Type, userInput.InputWord)
+		message.Text = fmt.Sprintf(`Удалено %s из whiteList.`, userInput.InputWord)
 		tg.SendMessage(message)
 	} else {
-		message.Text = fmt.Sprintf(`Cлово "%s" отсутствует в бд.`, userInput.InputWord)
+		message.Text = fmt.Sprintf(`%s "%s" отсутствует в whiteList.`, userInput.Type, userInput.InputWord)
 		tg.SendMessage(message)
 	}
 }
@@ -285,4 +281,14 @@ func isContainsForbiddenWord(message string, forbiddenWords []models.ForbiddenWo
 		}
 	}
 	return false
+}
+func isAdmin(user string, whiteList []models.WhiteList) bool {
+	adminsMap := make(map[string]bool)
+
+	for _, item := range whiteList {
+		if item.Type == "admin" {
+			adminsMap[item.Content] = true
+		}
+	}
+	return adminsMap[user]
 }

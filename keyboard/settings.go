@@ -3,12 +3,13 @@ package keyboard
 import (
 	"GO-chatModeratorTg/models"
 	"GO-chatModeratorTg/tg"
+	"log"
 	"strings"
 )
 
 var UserStates = make(map[string]models.UserState) // Хранилище состояний пользователей
 
-func HandleSettings(callbackResult models.CallbackData) {
+func HandleSettingsCallback(callbackResult models.CallbackData) {
 	path := strings.Split(callbackResult.Data, "_")[0]
 	switch path {
 	case "home":
@@ -26,7 +27,7 @@ func HandleSettings(callbackResult models.CallbackData) {
 	case "whitelist":
 		handleWhitelistNav(callbackResult)
 	}
-	// log.Println("Received callback:", callbackResult.Data)
+	log.Println("Received callback:", callbackResult.Data)
 }
 
 func handleForbiddenWordsNav(callbackResult models.CallbackData) {
@@ -96,7 +97,7 @@ func handleWhitelistNav(callbackResult models.CallbackData) {
 				{Text: "Ссылки", CallbackData: "whitelist_add_url"},
 				{Text: "Упоминания", CallbackData: "whitelist_add_mention"},
 				{Text: "Админ", CallbackData: "whitelist_add_admin"},
-				{Text: "Назад", CallbackData: "forbiddenwords"},
+				{Text: "Назад", CallbackData: "whitelist"},
 			},
 		}
 		delete(UserStates, callbackResult.From.Username)
@@ -148,6 +149,7 @@ func handleWhitelistNav(callbackResult models.CallbackData) {
 		UserStates[userID] = models.UserState{
 			WaitingForInput: true,
 			Operation:       callbackResult.Data,
+			Type:            "admin",
 			Author:          callbackResult.From.Username,
 		}
 	case "whitelist_rm":
@@ -155,7 +157,7 @@ func handleWhitelistNav(callbackResult models.CallbackData) {
 			{{Text: "Ссылки", CallbackData: "whitelist_rm_url"},
 				{Text: "Упоминания", CallbackData: "whitelist_rm_mention"},
 				{Text: "Админ", CallbackData: "whitelist_rm_admin"},
-				{Text: "Назад", CallbackData: "forbiddenwords"}},
+				{Text: "Назад", CallbackData: "whitelist"}},
 		}
 		delete(UserStates, callbackResult.From.Username)
 		tg.EditMessage("Выберите тип:", callbackResult.Message.Chat.ID, callbackResult.Message.MessageID)

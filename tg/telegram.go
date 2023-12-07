@@ -20,7 +20,7 @@ func DeleteMessage(chatID, messageID int64) (models.DeleteMessageResponse, error
 	if err := json.NewDecoder(resp).Decode(&response); err != nil {
 		return models.DeleteMessageResponse{}, fmt.Errorf("error decoding JSON: %s", err)
 	}
-	log.Println("=b414b5=", response)
+	// log.Println("=b414b5=", response)
 	return response, nil
 }
 

@@ -67,14 +67,28 @@ type DeleteMessageResponse struct {
 }
 
 type ForbiddenWords struct {
-	Word string `bson:"word"`
+	Word    string `bson:"word" json:"word"`
+	AddedBy string `bson:"addedBy" json:"addedBy"`
 }
 
 type WhiteList struct {
-	Type    string    `bson:"type"`
-	Content string    `bson:"content"`
-	Added   time.Time `bson:"added"`
-	AddedBy string    `bson:"addedBy"`
+	Type    string    `bson:"type" json:"type"`
+	Content string    `bson:"content" json:"content"`
+	Added   time.Time `bson:"added" json:"added"`
+	AddedBy string    `bson:"addedBy" json:"addedBy"`
+}
+
+type Admins_response struct {
+	Records    []WhiteList `json:"records"`
+	Page       int         `json:"pageNumber"`
+	TotalFound int64       `json:"totalFound"`
+	UUID       string      `json:"uuid"`
+}
+type ForbiddenWords_response struct {
+	Records    []ForbiddenWords `json:"records"`
+	Page       int              `json:"pageNumber"`
+	TotalFound int64            `json:"totalFound"`
+	UUID       string           `json:"uuid"`
 }
 
 // Если нужно декодировать result - создаю структуру и указываю ее в Result как тип данных
@@ -114,4 +128,14 @@ type EditMessage struct {
 	ChatID    int64  `json:"chat_id"`
 	MessageID int64  `json:"message_id"`
 	Text      string `json:"text"`
+}
+type Auth struct {
+	Login    string `json:"login" bson:"login"`
+	Password string `json:"password" bson:"password"`
+	UUID     string `json:"uuid"`
+}
+type Params struct {
+	UUID string `json:"uuid"`
+	Page int    `json:"page"`
+	Seach string `json:"seach"`
 }
