@@ -39,7 +39,6 @@ func InsertIfNotExists(filter, update primitive.M, collName string, upsert bool)
 	if err != nil {
 		log.Println("=InsertIfNotExists=", err)
 	}
-
 	if result.UpsertedCount != 0 {
 		return true
 	}
@@ -58,14 +57,7 @@ func DeleteDocument(filter primitive.M, collName string) bool {
 	return false
 }
 
-func InsertOne(document interface{}, collName string) {
-	ctx := context.TODO()
-	result, err := dataBase.Collection(collName).InsertOne(ctx, document)
-	if err != nil {
-		log.Println("=Find=", err)
-	}
-	fmt.Printf("Document inserted: %v\n", result)
-}
+
 
 func UpdateIfExists(filter, update primitive.M, collName string) *mongo.UpdateResult {
 	opts := options.Update().SetUpsert(false)
@@ -123,4 +115,12 @@ func FindReturnDecoded(filter interface{}, collName string, result interface{}) 
 		return err
 	}
 	return nil
+}
+func InsertOne(document interface{}, collName string) {
+	ctx := context.TODO()
+	result, err := dataBase.Collection(collName).InsertOne(ctx, document)
+	if err != nil {
+		log.Println("=Find=", err)
+	}
+	fmt.Printf("Document inserted: %v\n", result)
 }

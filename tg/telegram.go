@@ -20,7 +20,6 @@ func DeleteMessage(chatID, messageID int64) (models.DeleteMessageResponse, error
 	if err := json.NewDecoder(resp).Decode(&response); err != nil {
 		return models.DeleteMessageResponse{}, fmt.Errorf("error decoding JSON: %s", err)
 	}
-	// log.Println("=b414b5=", response)
 	return response, nil
 }
 
@@ -55,4 +54,25 @@ func EditKeybordMessage(chatID int64, messageID int64, keyboard [][]models.Inlin
 	if _, err := server.PostToApi("editMessageReplyMarkup", messageJSON); err != nil {
 		log.Println("=52a1d9=", err)
 	}
+}
+
+func SendMenu() error {
+	// Формирование меню с описанием
+	commands := []models.SetMenu{
+		{Command: "/site", Description: "Сайт"},
+		{Command: "/settings", Description: "Настройки"},
+	}
+	commandsJSON := map[string]interface{}{
+		"commands": commands,
+	}
+
+	requestBody, err := json.Marshal(commandsJSON)
+	if err != nil {
+		return err
+	}
+	if res, err := server.PostToApi("setMyCommands", requestBody); err != nil {
+		log.Println("=c77107=", res)
+		return err
+	}
+	return nil
 }

@@ -54,7 +54,6 @@ func GetToApi(route string) (io.ReadCloser, error) {
 	return res.Body, nil
 }
 func Start(host string) {
-	log.Println("=ba58dc=")
 	http.HandleFunc("/", HandleRequest)
 	http.ListenAndServe(host, nil)
 }
