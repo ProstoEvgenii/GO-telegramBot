@@ -96,11 +96,11 @@ func adminInputHandle(userInput models.UserState, ChatID int64) {
 			"word": userInput.InputWord,
 		}
 		if db.DeleteDocument(filter, "forbiddenWords") {
-			message.Text = fmt.Sprintf(`Удалил слово "%s" из базы.`, userInput.InputWord)
+			message.Text = fmt.Sprintf(`Слово "%s" больше не запрещено.`, userInput.InputWord)
 			tg.SendMessage(message)
 			GetWhiteListAndForbiddeWords()
 		} else {
-			message.Text = fmt.Sprintf(`Cлово "%s" отсутствует в бд.`, userInput.InputWord)
+			message.Text = fmt.Sprintf(`Cлово "%s" отсутствует в базе запрещенных слов.`, userInput.InputWord)
 			tg.SendMessage(message)
 		}
 	case "whitelist_add_url":

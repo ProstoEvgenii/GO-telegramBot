@@ -3,7 +3,6 @@ package keyboard
 import (
 	"GO-chatModeratorTg/models"
 	"GO-chatModeratorTg/tg"
-	"log"
 	"strings"
 )
 
@@ -27,7 +26,7 @@ func HandleSettingsCallback(callbackResult models.CallbackData) {
 	case "whitelist":
 		handleWhitelistNav(callbackResult)
 	}
-	log.Println("Received callback:", callbackResult.Data)
+	// log.Println("Received callback:", callbackResult.Data)
 }
 
 func handleForbiddenWordsNav(callbackResult models.CallbackData) {

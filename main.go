@@ -4,7 +4,6 @@ import (
 	"GO-chatModeratorTg/db"
 	"GO-chatModeratorTg/moderator"
 	"GO-chatModeratorTg/server"
-	"GO-chatModeratorTg/tg"
 	"log"
 
 	"github.com/joho/godotenv"
@@ -17,11 +16,10 @@ func main() {
 		host = ":80"
 	}
 	db.Connect()
-	tg.SendMenu()
 	intervalGetUpdate := 1
 	intervalGetData := 15
-	moderator.GetWhiteListAndForbiddeWords()
 	offset := 668578288
+	moderator.GetWhiteListAndForbiddeWords()
 	go moderator.RunTickers(intervalGetUpdate, intervalGetData, offset)
 	server.Start(host)
 
