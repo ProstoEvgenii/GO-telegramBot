@@ -1,7 +1,5 @@
 package models
 
-import "time"
-
 type GetUpdates struct {
 	Ok     bool     `json:"ok"`
 	Result []Result `json:"result"`
@@ -56,11 +54,6 @@ type Entities struct {
 	URL    string `json:"url"`
 }
 
-// type GetChatMemberResponse struct {
-// 	Ok     bool             `json:"ok"`
-// 	Result ChatMemberResult `json:"result"`
-// }
-
 type DeleteMessageResponse struct {
 	Ok bool `json:"ok"`
 	// Result bool `json:"result"`
@@ -72,10 +65,11 @@ type ForbiddenWords struct {
 }
 
 type WhiteList struct {
-	Type    string    `bson:"type" json:"type"`
-	Content string    `bson:"content" json:"content"`
-	Added   time.Time `bson:"added" json:"added"`
-	AddedBy string    `bson:"addedBy" json:"addedBy"`
+	Type    string `bson:"type" json:"type"`
+	Content string `bson:"content" json:"content"`
+	// Added   time.Time `bson:"added" json:"added"`
+	AddedBy string `bson:"addedBy" json:"addedBy"`
+	ChatID  int64  `bson:"chatID"`
 }
 
 type Admins_response struct {
@@ -135,7 +129,7 @@ type Auth struct {
 	UUID     string `json:"uuid"`
 }
 type Params struct {
-	UUID string `json:"uuid"`
-	Page int    `json:"page"`
+	UUID  string `json:"uuid"`
+	Page  int    `json:"page"`
 	Seach string `json:"seach"`
 }

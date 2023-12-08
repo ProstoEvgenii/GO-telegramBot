@@ -6,6 +6,7 @@ import (
 	"GO-chatModeratorTg/models"
 	"GO-chatModeratorTg/tg"
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 
@@ -45,12 +46,24 @@ func handleAdminBotCommand(message models.Message, messageText string) {
 		tg.SendMessage(messageKeybord)
 
 	case "/site":
-		message := models.SendMessage{
+		newMessage := models.SendMessage{
 			ChatID:    message.Chat.ID,
 			ParseMode: "None",
 			Text:      "https://tt1.cryptodev.store/\nlogin: dima\npassword: !SuperPassDlyaDimy!",
 		}
-		tg.SendMessage(message)
+		tg.SendMessage(newMessage)
+	case "/start":
+		filter := bson.M{
+			"content": message.From.Username,
+			"type":    "admin",
+		}
+		log.Println("=46c309=", message.Chat.ID)
+		update := bson.M{"$set": bson.M{
+			"chatID": message.Chat.ID,
+		}}
+		db.InsertIfNotExists(filter, update, "whiteList", false)
+		GetWhiteListAndForbiddeWords()
+
 	default:
 
 	}

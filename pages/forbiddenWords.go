@@ -14,7 +14,6 @@ import (
 )
 
 func ForbiddenWordsHandler(rw http.ResponseWriter, request *http.Request) {
-
 	if request.Method == "GET" {
 		totalFound := db.CountDocuments(bson.M{}, "forbiddenWords")
 		params := new(models.Params)

@@ -3,6 +3,7 @@ package moderator
 import (
 	"GO-chatModeratorTg/models"
 	"GO-chatModeratorTg/tg"
+	"fmt"
 	"log"
 	"regexp"
 	"strings"
@@ -11,18 +12,23 @@ import (
 func handleUserPublicMessages(message models.Message) {
 	loweredText := strings.ToLower(message.Text)
 	if len(message.Entities) != 0 {
-		if !handleEntities(message.Entities, loweredText, whiteList) {
+		if isContain, entity := handleEntities(message.Entities, loweredText, whiteList); !isContain {
 			//Проверка сущностей используемых в сообщении(ссылки, упоминания)
-			tg.DeleteMessage(message.Chat.ID, message.MessageID)
+  			if entity != "" {
+				tg.DeleteMessage(message.Chat.ID, message.MessageID)
+				SendInfoToAdmins(message, entity)
+			}
+
 		}
-	} else if isContainsForbiddenWord(loweredText, forbiddenWords) {
+	} else if forbiddenWord := isContainsForbiddenWord(loweredText, forbiddenWords); forbiddenWord != "" {
 		//Проверка на запрещенные слова
 		tg.DeleteMessage(message.Chat.ID, message.MessageID)
+		SendInfoToAdmins(message, forbiddenWord)
 	}
 }
 
 // Бот проверяет сущности чата(ссылки, упоминания) для дальнейшей модерации.
-func handleEntities(entities []models.Entities, messageText string, whiteList []models.WhiteList) bool {
+func handleEntities(entities []models.Entities, messageText string, whiteList []models.WhiteList) (bool, string) {
 	for _, entity := range entities {
 		if entity.Type == "mention" {
 			//Обрабатывать разрешенные упоминания
@@ -31,10 +37,10 @@ func handleEntities(entities []models.Entities, messageText string, whiteList []
 			mention := messageText[start+1 : stop]
 			for _, item := range whiteList {
 				if item.Type == "mention" && item.Content == mention {
-					return true
+					return true, ""
 				}
 			}
-			return false
+			return false, mention
 		}
 		if entity.Type == "url" {
 			start := entity.Offset
@@ -43,26 +49,26 @@ func handleEntities(entities []models.Entities, messageText string, whiteList []
 			//Обрабатывать разрешенные ссылки
 			for _, item := range whiteList {
 				if item.Type == entity.Type && strings.Contains(url, item.Content) {
-					return true
+					return true, ""
 				}
 			}
-			return false
+			return false, url
 		}
 		if entity.Type == "text_link" {
 			//Обрабатывать разрешенные ссылки
 			for _, item := range whiteList {
 				if item.Type == "url" && strings.Contains(entity.URL, item.Content) {
-					return true
+					return true, ""
 				}
 			}
-			return false
+			return false, entity.URL
 		}
 	}
-	return false
+	return false, ""
 }
 
 // Бот разбивает сообщение на слайс строк и сверяет каждую строку с содержимым карты запрещенных слов.
-func isContainsForbiddenWord(message string, forbiddenWords []models.ForbiddenWords) bool {
+func isContainsForbiddenWord(message string, forbiddenWords []models.ForbiddenWords) string {
 	message = regexp.MustCompile("[^a-zA-Zа-яА-Я0-9\\s]+").ReplaceAllString(message, "")
 	messageWords := strings.Fields(message)
 
@@ -74,9 +80,25 @@ func isContainsForbiddenWord(message string, forbiddenWords []models.ForbiddenWo
 	for _, messageWord := range messageWords {
 		if forbiddenMap[messageWord] {
 			log.Printf("=Сообщение будет удалено из-за слова %s", messageWord)
-			return true
+			return messageWord
 
 		}
 	}
-	return false
+	return ""
+}
+
+func SendInfoToAdmins(message models.Message, reason string) {
+	messageToAdmin := models.SendMessage{
+		ParseMode: "None",
+		Text:      fmt.Sprintf("Пользователь:@%s\nПричина удаления: %s\n\n%s", message.From.Username, reason, message.Text),
+	}
+	for _, item := range whiteList {
+		log.Println("=1c648b=", item)
+		if item.ChatID != 0 {
+			messageToAdmin.ChatID = item.ChatID
+			tg.SendMessage(messageToAdmin)
+		}
+
+	}
+
 }
