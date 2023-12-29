@@ -17,7 +17,7 @@ func main() {
 	}
 	db.Connect()
 	intervalGetUpdate := 1
-	intervalGetData := 15
+	intervalGetData := 1
 	offset := 668578288
 	moderator.GetWhiteListAndForbiddeWords()
 	go moderator.RunTickers(intervalGetUpdate, intervalGetData, offset)

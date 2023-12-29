@@ -60,6 +60,7 @@ func getUpdate(offset int) (models.GetUpdates, error) {
 
 func GetWhiteListAndForbiddeWords() {
 	filter := bson.M{}
+	adminsMap = make(map[string]bool)
 	db.FindReturnDecoded(filter, "forbiddenWords", &forbiddenWords)
 	db.FindReturnDecoded(filter, "whiteList", &whiteList)
 	for _, item := range whiteList {
